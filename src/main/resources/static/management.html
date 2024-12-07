@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ügyintézői Kurzuskezelés</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://images2.alphacoders.com/720/thumb-1920-720843.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            color: #fff;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .menu {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .menu button {
+            background: #0078d7;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .menu button:hover {
+            background: #005bb5;
+        }
+        .course-list {
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #0078d7;
+            color: #fff;
+        }
+        button {
+            background: #d9534f;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #c9302c;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #ccc;
+        }
+        .error {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Ügyintézői Kurzuskezelés</h1>
+
+    <div class="menu">
+        <button onclick="logout()">Kijelentkezés</button>
+    </div>
+
+    <div class="course-list">
+        <h2>Felvett kurzusok</h2>
+        <table id="enrollment-table">
+            <thead>
+            <tr>
+                <th>Diák neve</th>
+                <th>Kurzus neve</th>
+                <th>Művelet</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    function loadEnrollments() {
+        const tableBody = document.querySelector('#enrollment-table tbody');
+        tableBody.innerHTML = '<tr><td colspan="3" class="loading">Betöltés...</td></tr>';
+
+        fetch('/api/admin/enrollments')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Nem sikerült lekérni a beiratkozásokat.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                tableBody.innerHTML = '';
+                if (data.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 3;
+                    cell.textContent = 'Nincs felvett kurzus.';
+                    cell.style.textAlign = 'center';
+                    row.appendChild(cell);
+                    tableBody.appendChild(row);
+                } else {
+                    data.forEach(enrollment => {
+                        const row = document.createElement('tr');
+                        const studentCell = document.createElement('td');
+                        const courseCell = document.createElement('td');
+                        const actionCell = document.createElement('td');
+                        const deleteButton = document.createElement('button');
+
+                        studentCell.textContent = enrollment.studentName;
+                        courseCell.textContent = enrollment.courseName;
+
+                        deleteButton.textContent = 'Törlés';
+                        deleteButton.onclick = () => deleteEnrollment(enrollment.enrollmentId);
+
+                        actionCell.appendChild(deleteButton);
+                        row.appendChild(studentCell);
+                        row.appendChild(courseCell);
+                        row.appendChild(actionCell);
+                        tableBody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Hiba a beiratkozások betöltésekor:', error);
+                tableBody.innerHTML = '<tr><td colspan="3" class="error">Hiba történt az adatok betöltésekor.</td></tr>';
+            });
+    }
+
+    function deleteEnrollment(enrollmentId) {
+        fetch(`/api/admin/unenroll/${enrollmentId}`, {
+            method: 'DELETE',
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Nem sikerült törölni a beiratkozást.');
+                }
+                alert('A beiratkozás sikeresen törölve!');
+                loadEnrollments();
+            })
+            .catch(error => {
+                alert(`Hiba történt a törlés során: ${error.message}`);
+                console.error('Hiba a törlés során:', error);
+            });
+    }
+
+    function logout() {
+        alert('Kijelentkezés sikeres!');
+        localStorage.removeItem('adminId');
+        window.location.href = 'index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadEnrollments);
+</script>
+</body>
+</html>

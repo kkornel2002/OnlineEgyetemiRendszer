@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Egyetemi Rendszer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-image: url('https://images2.alphacoders.com/720/thumb-1920-720843.jpg');
+            background-size: cover;
+            background-position: center;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .menu {
+            margin-bottom: 20px;
+        }
+        .menu button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            background-color: #0078d7;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .menu button:hover {
+            background-color: #005bb5;
+        }
+        .content {
+            display: none;
+        }
+        .content.active {
+            display: block;
+        }
+        .course-list {
+            margin-top: 10px;
+        }
+        .course-list button {
+            margin-top: 5px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Online Egyetemi Rendszer</h1>
+    <div class="menu">
+        <button onclick="showContent('fomenu')">Főmenü</button>
+        <button onclick="loadCourses()">Elérhető kurzusok</button>
+        <button onclick="loadMyCourses()">Felvett kurzusaim</button>
+        <button onclick="logout()">Felhasználó kijelentkezése</button>
+    </div>
+
+    <div id="fomenu" class="content active">
+        <h2>Főmenü</h2>
+        <p>Üdvözlünk az Online Egyetemi Rendszerben! Válasszon egy opciót a menüből.</p>
+    </div>
+
+    <div id="kurzusok" class="content">
+        <h2>Elérhető kurzusok</h2>
+        <div id="course-list" class="course-list"></div>
+        <button onclick="showContent('fomenu')">Vissza a főmenübe</button>
+    </div>
+
+    <div id="my-kurzusok" class="content">
+        <h2>Felvett kurzusaim</h2>
+        <div id="my-course-list" class="course-list"></div>
+        <button onclick="showContent('fomenu')">Vissza a főmenübe</button>
+    </div>
+
+    <script>
+        function showContent(id) {
+            const contents = document.querySelectorAll('.content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function loadCourses() {
+            const userId = localStorage.getItem('userId'); // userId lekérése
+
+            fetch(`/api/courses?userId=${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('course-list');
+                    list.innerHTML = '';
+                    if (data.length === 0) {
+                        list.innerHTML = '<p>Nincs elérhető kurzus.</p>';
+                    } else {
+                        data.forEach(course => {
+                            const button = document.createElement('button');
+                            button.textContent = course.name;
+                            button.onclick = () => enroll(course.id);
+                            list.appendChild(button);
+                        });
+                    }
+                    showContent('kurzusok');
+                })
+                .catch(error => {
+                    console.error('Hiba az elérhető kurzusok betöltésekor:', error);
+                });
+        }
+
+        function enroll(courseId) {
+            const userId = localStorage.getItem('userId'); // userId lekérése
+            fetch('/api/enroll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId, courseId })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadCourses();
+                })
+                .catch(error => {
+                    console.error('Hiba a kurzus felvételekor:', error);
+                });
+        }
+
+        function loadMyCourses() {
+            const userId = localStorage.getItem('userId'); // userId lekérése
+
+            fetch(`/api/my-courses?userId=${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('my-course-list');
+                    list.innerHTML = '';
+                    if (data.length === 0) {
+                        list.innerHTML = '<p>Nincsenek felvett kurzusok.</p>';
+                    } else {
+                        data.forEach(course => {
+                            const button = document.createElement('button');
+                            button.textContent = `Törlés: ${course.name}`;
+                            button.onclick = () => unenroll(course.id);
+                            list.appendChild(button);
+                        });
+                    }
+                    showContent('my-kurzusok');
+                })
+                .catch(error => {
+                    console.error('Hiba a felvett kurzusok betöltésekor:', error);
+                });
+        }
+
+        function unenroll(courseId) {
+            const userId = localStorage.getItem('userId'); // userId lekérése
+            fetch('/api/unenroll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId, courseId })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadMyCourses();
+                })
+                .catch(error => {
+                    console.error('Hiba a kurzus törlésekor:', error);
+                });
+        }
+
+        function logout() {
+            alert('Kijelentkezés sikeres!');
+            localStorage.removeItem('userId'); // userId törlése
+            location.href = 'index.html';
+        }
+    </script>
+</div>
+</body>
+</html>

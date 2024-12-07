@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Egyetemi Rendszer Bejelentkezés</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://images2.alphacoders.com/720/thumb-1920-720843.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+        }
+        .header {
+            font-size: 48px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+        .login-container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background: #5cb85c;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #4cae4c;
+        }
+        .error {
+            color: red;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="header">Online Egyetemi Rendszer</div>
+<div class="login-container">
+    <h2>Bejelentkezés</h2>
+    <div id="error-message" class="error"></div>
+    <label for="username"></label><input type="text" id="username" placeholder="Felhasználónév">
+    <input type="password" id="password" placeholder="Jelszó" onkeydown="if(event.key === 'Enter') login()">
+    <button onclick="login()">Bejelentkezés</button>
+</div>
+<script>
+    function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (!username || !password) {
+            document.getElementById('error-message').textContent = 'Kérjük, töltse ki az összes mezőt!';
+            return;
+        }
+
+
+        const adminLogin = fetch('/api/admin/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        const userLogin = fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+
+        Promise.allSettled([adminLogin, userLogin])
+            .then(results => {
+
+                const adminResponse = results[0];
+                const userResponse = results[1];
+
+                if (adminResponse.status === 'fulfilled' && adminResponse.value.ok) {
+                    return adminResponse.value.json().then(data => {
+                        alert(data.message);
+                        localStorage.setItem('adminId', data.adminId);
+                        window.location.href = 'management.html';
+                    });
+                } else if (userResponse.status === 'fulfilled' && userResponse.value.ok) {
+                    return userResponse.value.json().then(data => {
+                        alert(data.message);
+                        localStorage.setItem('userId', data.userId);
+                        window.location.href = 'student.html';
+                    });
+                } else {
+                    throw new Error('Hibás felhasználónév vagy jelszó!');
+                }
+            })
+            .catch(error => {
+                document.getElementById('error-message').textContent = error.message;
+            });
+    }
+</script>
+</body>
+</html>
