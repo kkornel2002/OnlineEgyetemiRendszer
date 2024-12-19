@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ügyintézői Kurzuskezelés</title>
+    <title>Ügyintézői Vizsgakezelés</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -45,7 +45,7 @@
         .menu button:hover {
             background: #005bb5;
         }
-        .course-list {
+        .exam-list {
             margin: 10px 0;
         }
         table {
@@ -89,19 +89,20 @@
 </head>
 <body>
 <div class="container">
-    <h1>Ügyintézői Kurzuskezelés</h1>
+    <h1>Ügyintézői Vizsgakezelés</h1>
 
     <div class="menu">
         <button onclick="logout()">Kijelentkezés</button>
+        <button onclick="showExamCreationForm()">Új vizsga létrehozása</button>
     </div>
 
-    <div class="course-list">
-        <h2>Felvett kurzusok</h2>
-        <table id="enrollment-table">
+    <div class="exam-list">
+        <h2>Felvett vizsgák</h2>
+        <table id="registration-table">
             <thead>
             <tr>
                 <th>Diák neve</th>
-                <th>Kurzus neve</th>
+                <th>Vizsga neve</th>
                 <th>Művelet</th>
             </tr>
             </thead>
@@ -110,16 +111,25 @@
             </tbody>
         </table>
     </div>
+
+    <div id="exam-creation-form" style="display: none;">
+        <h2>Új vizsga létrehozása</h2>
+        <form id="create-exam-form">
+            <label for="exam-name">Vizsga neve:</label>
+            <input type="text" id="exam-name" name="exam-name" required>
+            <button type="button" onclick="createExam()">Létrehozás</button>
+        </form>
+    </div>
 </div>
 <script>
-    function loadEnrollments() {
-        const tableBody = document.querySelector('#enrollment-table tbody');
+    function loadRegistrations() {
+        const tableBody = document.querySelector('#registration-table tbody');
         tableBody.innerHTML = '<tr><td colspan="3" class="loading">Betöltés...</td></tr>';
 
-        fetch('/api/admin/enrollments')
+        fetch('/api/admin/registrations')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Nem sikerült lekérni a beiratkozásokat.');
+                    throw new Error('Nem sikerült lekérni a vizsgajelentkezéseket.');
                 }
                 return response.json();
             })
@@ -129,53 +139,88 @@
                     const row = document.createElement('tr');
                     const cell = document.createElement('td');
                     cell.colSpan = 3;
-                    cell.textContent = 'Nincs felvett kurzus.';
+                    cell.textContent = 'Nincs felvett vizsga.';
                     cell.style.textAlign = 'center';
                     row.appendChild(cell);
                     tableBody.appendChild(row);
                 } else {
-                    data.forEach(enrollment => {
+                    data.forEach(registration => {
                         const row = document.createElement('tr');
                         const studentCell = document.createElement('td');
-                        const courseCell = document.createElement('td');
+                        const examCell = document.createElement('td');
                         const actionCell = document.createElement('td');
                         const deleteButton = document.createElement('button');
 
-                        studentCell.textContent = enrollment.studentName;
-                        courseCell.textContent = enrollment.courseName;
+                        studentCell.textContent = registration.studentName;
+                        examCell.textContent = registration.examName;
 
                         deleteButton.textContent = 'Törlés';
-                        deleteButton.onclick = () => deleteEnrollment(enrollment.enrollmentId);
+                        deleteButton.onclick = () => deleteRegistration(registration.registrationId);
 
                         actionCell.appendChild(deleteButton);
                         row.appendChild(studentCell);
-                        row.appendChild(courseCell);
+                        row.appendChild(examCell);
                         row.appendChild(actionCell);
                         tableBody.appendChild(row);
                     });
                 }
             })
             .catch(error => {
-                console.error('Hiba a beiratkozások betöltésekor:', error);
+                console.error('Hiba a vizsgajelentkezések betöltésekor:', error);
                 tableBody.innerHTML = '<tr><td colspan="3" class="error">Hiba történt az adatok betöltésekor.</td></tr>';
             });
     }
 
-    function deleteEnrollment(enrollmentId) {
-        fetch(`/api/admin/unenroll/${enrollmentId}`, {
+    function deleteRegistration(registrationId) {
+        fetch(`/api/admin/unregister/${registrationId}`, {
             method: 'DELETE',
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Nem sikerült törölni a beiratkozást.');
+                    throw new Error('Nem sikerült törölni a vizsgajelentkezést.');
                 }
-                alert('A beiratkozás sikeresen törölve!');
-                loadEnrollments();
+                alert('A vizsgajelentkezés sikeresen törölve!');
+                loadRegistrations();
             })
             .catch(error => {
                 alert(`Hiba történt a törlés során: ${error.message}`);
                 console.error('Hiba a törlés során:', error);
             });
+    }
+
+    function createExam() {
+        const examName = document.getElementById('exam-name').value;
+        if (!examName) {
+            alert('A vizsga neve nem lehet üres!');
+            return;
+        }
+
+        fetch('/api/admin/create-exam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: examName })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Nem sikerült létrehozni a vizsgát.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                document.getElementById('create-exam-form').reset();
+                showExamCreationForm(false);
+            })
+            .catch(error => {
+                alert(`Hiba történt a vizsga létrehozása során: ${error.message}`);
+                console.error('Hiba a vizsga létrehozása során:', error);
+            });
+    }
+
+    function showExamCreationForm(show = true) {
+        document.getElementById('exam-creation-form').style.display = show ? 'block' : 'none';
     }
 
     function logout() {
@@ -184,7 +229,7 @@
         window.location.href = 'index.html';
     }
 
-    document.addEventListener('DOMContentLoaded', loadEnrollments);
+    document.addEventListener('DOMContentLoaded', loadRegistrations);
 </script>
 </body>
 </html>

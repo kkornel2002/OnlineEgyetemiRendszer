@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.stubbing.OngoingStubbing;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -19,8 +18,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-
 
 class BackendManagementAPITest {
 
@@ -40,13 +37,12 @@ class BackendManagementAPITest {
 
     @Test
     void adminLogin_ValidCredentials_ReturnsSuccess() throws Exception {
-        
+
         String username = "ugyintezo1";
         String password = "ugyintezojelszo1";
         when(jdbcTemplate.queryForMap(anyString(), eq(username)))
                 .thenReturn(Map.of("id", 1, "password", password));
 
-        
         mockMvc.perform(post("/api/admin/login")
                         .contentType("application/json")
                         .content("{\"username\":\"ugyintezo1\",\"password\":\"ugyintezojelszo1\"}"))
@@ -56,20 +52,18 @@ class BackendManagementAPITest {
     }
 
     @Test
-    <T>
-    void getAllEnrollments_ReturnsEnrollments() throws Exception {
+    void getAllRegistrations_ReturnsRegistrations() throws Exception {
 
-        OngoingStubbing<List<Map<String, Object>>> tOngoingStubbing = when(jdbcTemplate.queryForList(anyString())).thenReturn(
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(
                 List.of(
-                        Map.of("enrollmentId", 1, "studentName", "diak1", "courseName", "Matematika I."),
-                        Map.of("enrollmentId", 2, "studentName", "diak2", "courseName", "Fizika II.")
+                        Map.of("registrationId", 1, "studentName", "diak1", "examName", "Matematika"),
+                        Map.of("registrationId", 2, "studentName", "diak2", "examName", "Fizika")
                 )
         );
 
-
-        mockMvc.perform(get("/api/admin/enrollments"))
+        mockMvc.perform(get("/api/admin/registrations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].studentName").value("diak1"))
-                .andExpect(jsonPath("$[1].courseName").value("Fizika II."));
+                .andExpect(jsonPath("$[1].examName").value("Fizika"));
     }
 }

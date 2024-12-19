@@ -67,86 +67,82 @@ class BackendManagementTest {
     }
 
     @Test
-    void getAllEnrollments_ReturnsEnrollmentList() {
+    void getAllRegistrations_ReturnsRegistrationList() {
         when(jdbcTemplate.queryForList(anyString()))
                 .thenReturn(List.of(
-                        Map.of("enrollmentId", 1, "studentName", "diak1", "courseName", "Matematika I."),
-                        Map.of("enrollmentId", 2, "studentName", "diak2", "courseName", "Fizika II.")
+                        Map.of("registrationId", 1, "studentName", "diak1", "examName", "Matematika"),
+                        Map.of("registrationId", 2, "studentName", "diak2", "examName", "Fizika")
                 ));
 
-        List<Map<String, Object>> enrollments = backendManagement.getAllEnrollments();
+        List<Map<String, Object>> registrations = backendManagement.getAllRegistrations();
 
-        assertEquals(2, enrollments.size());
-        assertEquals("diak1", enrollments.get(0).get("studentName"));
-        assertEquals("Matematika I.", enrollments.get(0).get("courseName"));
+        assertEquals(2, registrations.size());
+        assertEquals("diak1", registrations.get(0).get("studentName"));
+        assertEquals("Matematika", registrations.get(0).get("examName"));
     }
 
     @Test
-    void deleteEnrollment_ValidEnrollmentId_ReturnsSuccessMessage() {
-        int enrollmentId = 1;
+    void deleteRegistration_ValidRegistrationId_ReturnsSuccessMessage() {
+        int registrationId = 1;
 
-        when(jdbcTemplate.update("DELETE FROM enrollments WHERE id = ?", enrollmentId)).thenReturn(1);
+        when(jdbcTemplate.update("DELETE FROM registrations WHERE id = ?", registrationId)).thenReturn(1);
 
-        Map<String, String> response = backendManagement.deleteEnrollment(enrollmentId);
+        Map<String, String> response = backendManagement.deleteRegistration(registrationId);
 
-        assertEquals("A beiratkozás sikeresen törölve.", response.get("message"));
+        assertEquals("A vizsgajelentkezés sikeresen törölve.", response.get("message"));
     }
 
     @Test
-    void deleteEnrollment_InvalidEnrollmentId_ThrowsException() {
-        int enrollmentId = 999;
+    void deleteRegistration_InvalidRegistrationId_ThrowsException() {
+        int registrationId = 999;
 
-        when(jdbcTemplate.update("DELETE FROM enrollments WHERE id = ?", enrollmentId)).thenReturn(0);
+        when(jdbcTemplate.update("DELETE FROM registrations WHERE id = ?", registrationId)).thenReturn(0);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                backendManagement.deleteEnrollment(enrollmentId));
+                backendManagement.deleteRegistration(registrationId));
 
-        assertEquals("Nem található ilyen beiratkozás.", exception.getMessage());
+        assertEquals("Nem található ilyen vizsgajelentkezés.", exception.getMessage());
     }
 
     @Test
-    void enroll_ValidRequest_ReturnsSuccessMessage() {
+    void register_ValidRequest_ReturnsSuccessMessage() {
         int userId = 1;
-        int courseId = 2;
+        int examId = 2;
 
-
-        when(jdbcTemplate.update("INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)", userId, courseId))
+        when(jdbcTemplate.update("INSERT INTO registrations (user_id, exam_id) VALUES (?, ?)", userId, examId))
                 .thenReturn(1);
 
+        Map<String, String> response = backendManagement.register(Map.of("userId", String.valueOf(userId), "examId", String.valueOf(examId)));
 
-        Map<String, String> response = backendManagement.enroll(Map.of("userId", String.valueOf(userId), "courseId", String.valueOf(courseId)));
-
-
-        assertEquals("Sikeres jelentkezés!", response.get("message"));
+        assertEquals("Sikeres jelentkezés a vizsgára!", response.get("message"));
     }
 
-
     @Test
-    void unenroll_ValidRequest_ReturnsSuccessMessage() {
+    void unregister_ValidRequest_ReturnsSuccessMessage() {
         int userId = 1;
-        int courseId = 2;
+        int examId = 2;
 
-        when(jdbcTemplate.update("DELETE FROM enrollments WHERE user_id = ? AND course_id = ?", userId, courseId)).thenReturn(1);
+        when(jdbcTemplate.update("DELETE FROM registrations WHERE user_id = ? AND exam_id = ?", userId, examId)).thenReturn(1);
 
-        Map<String, String> response = backendManagement.unenroll(Map.of("userId", String.valueOf(userId), "courseId", String.valueOf(courseId)));
+        Map<String, String> response = backendManagement.unregister(Map.of("userId", String.valueOf(userId), "examId", String.valueOf(examId)));
 
-        assertEquals("Kurzus törölve a felvett kurzusok közül!", response.get("message"));
+        assertEquals("Vizsgajelentkezés törölve!", response.get("message"));
     }
 
     @Test
-    void getAvailableCourses_ReturnsCourseList() {
+    void getAvailableExams_ReturnsExamList() {
         int userId = 1;
 
         when(jdbcTemplate.queryForList(anyString(), eq(userId)))
                 .thenReturn(List.of(
-                        Map.of("id", 101, "name", "Analízis I."),
-                        Map.of("id", 102, "name", "Programozás Alapjai")
+                        Map.of("id", 101, "name", "Analízis"),
+                        Map.of("id", 102, "name", "Programozás")
                 ));
 
-        List<Map<String, Object>> courses = backendManagement.getAvailableCourses(userId);
+        List<Map<String, Object>> exams = backendManagement.getAvailableExams(userId);
 
-        assertEquals(2, courses.size());
-        assertEquals("Analízis I.", courses.get(0).get("name"));
-        assertEquals("Programozás Alapjai", courses.get(1).get("name"));
+        assertEquals(2, exams.size());
+        assertEquals("Analízis", exams.get(0).get("name"));
+        assertEquals("Programozás", exams.get(1).get("name"));
     }
 }

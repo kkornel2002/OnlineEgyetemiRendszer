@@ -46,10 +46,10 @@
         .content.active {
             display: block;
         }
-        .course-list {
+        .exam-list {
             margin-top: 10px;
         }
-        .course-list button {
+        .exam-list button {
             margin-top: 5px;
             display: block;
         }
@@ -60,25 +60,25 @@
     <h1>Online Egyetemi Rendszer</h1>
     <div class="menu">
         <button onclick="showContent('fomenu')">Főmenü</button>
-        <button onclick="loadCourses()">Elérhető kurzusok</button>
-        <button onclick="loadMyCourses()">Felvett kurzusaim</button>
+        <button onclick="loadExams()">Elérhető vizsgák</button>
+        <button onclick="loadMyExams()">Felvett vizsgáim</button>
         <button onclick="logout()">Felhasználó kijelentkezése</button>
     </div>
 
     <div id="fomenu" class="content active">
         <h2>Főmenü</h2>
-        <p>Üdvözlünk az Online Egyetemi Rendszerben! Válasszon egy opciót a menüből.</p>
+        <p>Üdvözöljük az Online Egyetemi Rendszerben! Válasszon egy opciót a menüből.</p>
     </div>
 
-    <div id="kurzusok" class="content">
-        <h2>Elérhető kurzusok</h2>
-        <div id="course-list" class="course-list"></div>
+    <div id="vizsgak" class="content">
+        <h2>Elérhető vizsgák</h2>
+        <div id="exam-list" class="exam-list"></div>
         <button onclick="showContent('fomenu')">Vissza a főmenübe</button>
     </div>
 
-    <div id="my-kurzusok" class="content">
-        <h2>Felvett kurzusaim</h2>
-        <div id="my-course-list" class="course-list"></div>
+    <div id="my-vizsgak" class="content">
+        <h2>Felvett vizsgáim</h2>
+        <div id="my-exam-list" class="exam-list"></div>
         <button onclick="showContent('fomenu')">Vissza a főmenübe</button>
     </div>
 
@@ -89,97 +89,97 @@
             document.getElementById(id).classList.add('active');
         }
 
-        function loadCourses() {
-            const userId = localStorage.getItem('userId'); // userId lekérése
+        function loadExams() {
+            const userId = localStorage.getItem('userId');
 
-            fetch(`/api/courses?userId=${userId}`)
+            fetch(`/api/exams?userId=${userId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const list = document.getElementById('course-list');
+                    const list = document.getElementById('exam-list');
                     list.innerHTML = '';
                     if (data.length === 0) {
-                        list.innerHTML = '<p>Nincs elérhető kurzus.</p>';
+                        list.innerHTML = '<p>Nincs elérhető vizsga.</p>';
                     } else {
-                        data.forEach(course => {
+                        data.forEach(exam => {
                             const button = document.createElement('button');
-                            button.textContent = course.name;
-                            button.onclick = () => enroll(course.id);
+                            button.textContent = exam.name;
+                            button.onclick = () => register(exam.id);
                             list.appendChild(button);
                         });
                     }
-                    showContent('kurzusok');
+                    showContent('vizsgak');
                 })
                 .catch(error => {
-                    console.error('Hiba az elérhető kurzusok betöltésekor:', error);
+                    console.error('Hiba az elérhető vizsgák betöltésekor:', error);
                 });
         }
 
-        function enroll(courseId) {
-            const userId = localStorage.getItem('userId'); // userId lekérése
-            fetch('/api/enroll', {
+        function register(examId) {
+            const userId = localStorage.getItem('userId');
+            fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ userId, courseId })
+                body: JSON.stringify({ userId, examId })
             })
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message);
-                    loadCourses();
+                    loadExams();
                 })
                 .catch(error => {
-                    console.error('Hiba a kurzus felvételekor:', error);
+                    console.error('Hiba a vizsgára jelentkezéskor:', error);
                 });
         }
 
-        function loadMyCourses() {
-            const userId = localStorage.getItem('userId'); // userId lekérése
+        function loadMyExams() {
+            const userId = localStorage.getItem('userId');
 
-            fetch(`/api/my-courses?userId=${userId}`)
+            fetch(`/api/my-exams?userId=${userId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const list = document.getElementById('my-course-list');
+                    const list = document.getElementById('my-exam-list');
                     list.innerHTML = '';
                     if (data.length === 0) {
-                        list.innerHTML = '<p>Nincsenek felvett kurzusok.</p>';
+                        list.innerHTML = '<p>Nincsenek felvett vizsgák.</p>';
                     } else {
-                        data.forEach(course => {
+                        data.forEach(exam => {
                             const button = document.createElement('button');
-                            button.textContent = `Törlés: ${course.name}`;
-                            button.onclick = () => unenroll(course.id);
+                            button.textContent = `Törlés: ${exam.name}`;
+                            button.onclick = () => unregister(exam.id);
                             list.appendChild(button);
                         });
                     }
-                    showContent('my-kurzusok');
+                    showContent('my-vizsgak');
                 })
                 .catch(error => {
-                    console.error('Hiba a felvett kurzusok betöltésekor:', error);
+                    console.error('Hiba a felvett vizsgák betöltésekor:', error);
                 });
         }
 
-        function unenroll(courseId) {
-            const userId = localStorage.getItem('userId'); // userId lekérése
-            fetch('/api/unenroll', {
+        function unregister(examId) {
+            const userId = localStorage.getItem('userId');
+            fetch('/api/unregister', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ userId, courseId })
+                body: JSON.stringify({ userId, examId })
             })
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message);
-                    loadMyCourses();
+                    loadMyExams();
                 })
                 .catch(error => {
-                    console.error('Hiba a kurzus törlésekor:', error);
+                    console.error('Hiba a vizsgajelentkezés törlésekor:', error);
                 });
         }
 
         function logout() {
             alert('Kijelentkezés sikeres!');
-            localStorage.removeItem('userId'); // userId törlése
+            localStorage.removeItem('userId');
             location.href = 'index.html';
         }
     </script>

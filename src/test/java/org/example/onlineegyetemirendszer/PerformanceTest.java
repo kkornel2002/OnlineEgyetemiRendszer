@@ -17,7 +17,6 @@ public class PerformanceTest {
     private final int THREAD_COUNT = 10;
     private final int ITERATIONS_PER_THREAD = 10;
     private final String BASE_URL = "http://localhost:8080/index.html";
-    private WebDriver driver;
 
     @BeforeClass
     public void setUp() {
@@ -66,6 +65,15 @@ public class PerformanceTest {
 
         try {
             Thread.sleep(500);
+
+            WebElement examsMenuButton = localDriver.findElement(By.id("examsMenuButton"));
+            examsMenuButton.click();
+            System.out.println("Vizsgák menü elérve.");
+
+            WebElement examList = localDriver.findElement(By.id("exam-list"));
+            if (examList.isDisplayed()) {
+                System.out.println("Vizsgák listája sikeresen betöltődött.");
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -77,8 +85,6 @@ public class PerformanceTest {
 
     @AfterClass
     public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
+        System.out.println("Teljesítményteszt véget ért.");
     }
 }

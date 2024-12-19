@@ -19,15 +19,26 @@ public class BackendManagement {
 
     @PostConstruct
     public void initializeDatabase() {
-        // Admin felhasználók
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password TEXT NOT NULL)");
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password TEXT NOT NULL)");
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS exams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)");
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS registrations (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, exam_id INTEGER NOT NULL, FOREIGN KEY (user_id) REFERENCES users (id), FOREIGN KEY (exam_id) REFERENCES exams (id))");
+
+
         jdbcTemplate.update("INSERT OR IGNORE INTO admins (username, password) VALUES (?, ?)", "ugyintezo1", "ugyintezojelszo1");
         jdbcTemplate.update("INSERT OR IGNORE INTO admins (username, password) VALUES (?, ?)", "ugyintezo2", "ugyintezojelszo2");
         jdbcTemplate.update("INSERT OR IGNORE INTO admins (username, password) VALUES (?, ?)", "ugyintezo3", "ugyintezojelszo3");
 
-        // Diák felhasználók
         jdbcTemplate.update("INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)", "diak1", "jelszo1");
         jdbcTemplate.update("INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)", "diak2", "jelszo2");
         jdbcTemplate.update("INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)", "diak3", "jelszo3");
+
+        jdbcTemplate.update("INSERT OR IGNORE INTO exams (name) VALUES (?)", "Analízis");
+        jdbcTemplate.update("INSERT OR IGNORE INTO exams (name) VALUES (?)", "Programozás");
+        jdbcTemplate.update("INSERT OR IGNORE INTO exams (name) VALUES (?)", "Fizika");
+        jdbcTemplate.update("INSERT OR IGNORE INTO exams (name) VALUES (?)", "Kémia");
+        jdbcTemplate.update("INSERT OR IGNORE INTO exams (name) VALUES (?)", "Angol");
     }
 
     @PostMapping("/admin/login")
@@ -72,63 +83,74 @@ public class BackendManagement {
         }
     }
 
-    @GetMapping("/admin/enrollments")
-    public List<Map<String, Object>> getAllEnrollments() {
+    @GetMapping("/admin/registrations")
+    public List<Map<String, Object>> getAllRegistrations() {
         return jdbcTemplate.queryForList(
-                "SELECT e.id AS enrollmentId, u.username AS studentName, c.name AS courseName " +
-                        "FROM enrollments e " +
-                        "JOIN users u ON e.user_id = u.id " +
-                        "JOIN courses c ON e.course_id = c.id"
+                "SELECT r.id AS registrationId, u.username AS studentName, e.name AS examName " +
+                        "FROM registrations r " +
+                        "JOIN users u ON r.user_id = u.id " +
+                        "JOIN exams e ON r.exam_id = e.id"
         );
     }
 
-    @DeleteMapping("/admin/unenroll/{enrollmentId}")
-    public Map<String, String> deleteEnrollment(@PathVariable int enrollmentId) {
+    @DeleteMapping("/admin/unregister/{registrationId}")
+    public Map<String, String> deleteRegistration(@PathVariable int registrationId) {
         int affectedRows = jdbcTemplate.update(
-                "DELETE FROM enrollments WHERE id = ?",
-                enrollmentId
+                "DELETE FROM registrations WHERE id = ?",
+                registrationId
         );
 
         if (affectedRows > 0) {
-            return Map.of("message", "A beiratkozás sikeresen törölve.");
+            return Map.of("message", "A vizsgajelentkezés sikeresen törölve.");
         } else {
-            throw new RuntimeException("Nem található ilyen beiratkozás.");
+            throw new RuntimeException("Nem található ilyen vizsgajelentkezés.");
         }
     }
 
-    @GetMapping("/courses")
-    public List<Map<String, Object>> getAvailableCourses(@RequestParam int userId) {
+    @PostMapping("/admin/create-exam")
+    public Map<String, String> createExam(@RequestBody Map<String, String> request) {
+        String examName = request.get("name");
+        if (examName == null || examName.isEmpty()) {
+            throw new RuntimeException("A vizsga neve nem lehet üres.");
+        }
+
+        jdbcTemplate.update("INSERT INTO exams (name) VALUES (?)", examName);
+        return Map.of("message", "A vizsga sikeresen létrehozva!", "examName", examName);
+    }
+
+    @GetMapping("/exams")
+    public List<Map<String, Object>> getAvailableExams(@RequestParam int userId) {
         return jdbcTemplate.queryForList(
-                "SELECT c.id, c.name FROM courses c " +
-                        "WHERE c.id NOT IN (SELECT e.course_id FROM enrollments e WHERE e.user_id = ?)",
+                "SELECT e.id, e.name FROM exams e " +
+                        "WHERE e.id NOT IN (SELECT r.exam_id FROM registrations r WHERE r.user_id = ?)",
                 userId
         );
     }
 
-    @PostMapping("/enroll")
-    public Map<String, String> enroll(@RequestBody Map<String, String> request) {
+    @PostMapping("/register")
+    public Map<String, String> register(@RequestBody Map<String, String> request) {
         int userId = Integer.parseInt(request.get("userId"));
-        int courseId = Integer.parseInt(request.get("courseId"));
+        int examId = Integer.parseInt(request.get("examId"));
 
-        jdbcTemplate.update("INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)", userId, courseId);
-        return Map.of("message", "Sikeres jelentkezés!");
+        jdbcTemplate.update("INSERT INTO registrations (user_id, exam_id) VALUES (?, ?)", userId, examId);
+        return Map.of("message", "Sikeres jelentkezés a vizsgára!");
     }
 
-    @GetMapping("/my-courses")
-    public List<Map<String, Object>> getMyCourses(@RequestParam int userId) {
+    @GetMapping("/my-exams")
+    public List<Map<String, Object>> getMyExams(@RequestParam int userId) {
         return jdbcTemplate.queryForList(
-                "SELECT c.id, c.name FROM enrollments e " +
-                        "JOIN courses c ON e.course_id = c.id WHERE e.user_id = ?",
+                "SELECT e.id, e.name FROM registrations r " +
+                        "JOIN exams e ON r.exam_id = e.id WHERE r.user_id = ?",
                 userId
         );
     }
 
-    @PostMapping("/unenroll")
-    public Map<String, String> unenroll(@RequestBody Map<String, String> request) {
+    @PostMapping("/unregister")
+    public Map<String, String> unregister(@RequestBody Map<String, String> request) {
         int userId = Integer.parseInt(request.get("userId"));
-        int courseId = Integer.parseInt(request.get("courseId"));
+        int examId = Integer.parseInt(request.get("examId"));
 
-        jdbcTemplate.update("DELETE FROM enrollments WHERE user_id = ? AND course_id = ?", userId, courseId);
-        return Map.of("message", "Kurzus törölve a felvett kurzusok közül!");
+        jdbcTemplate.update("DELETE FROM registrations WHERE user_id = ? AND exam_id = ?", userId, examId);
+        return Map.of("message", "Vizsgajelentkezés törölve!");
     }
 }

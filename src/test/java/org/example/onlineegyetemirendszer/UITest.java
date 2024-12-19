@@ -42,14 +42,11 @@ public class UITest {
         loginButton.click();
         System.out.println("Bejelentkezés gombra rákattintva.");
 
-
         wait.until(ExpectedConditions.alertIsPresent());
         System.out.println("Figyelmeztető üzenet megjelenése észlelve.");
 
-
         driver.switchTo().alert().accept();
         System.out.println("Figyelmeztető üzenet elfogadva.");
-
 
         wait.until(ExpectedConditions.urlContains("management.html"));
         String currentUrl = driver.getCurrentUrl();
@@ -58,7 +55,7 @@ public class UITest {
     }
 
     @Test
-    public void testStudentLoginAndEnroll() {
+    public void testStudentLoginAndRegisterForExam() {
         driver.get("http://localhost:8080/index.html");
         System.out.println("Oldal betöltve: " + driver.getCurrentUrl());
 
@@ -74,31 +71,27 @@ public class UITest {
         loginButton.click();
         System.out.println("Bejelentkezés gombra rákattintva.");
 
-
         wait.until(ExpectedConditions.alertIsPresent());
         System.out.println("Figyelmeztető üzenet megjelenése észlelve.");
 
-
         driver.switchTo().alert().accept();
         System.out.println("Figyelmeztető üzenet elfogadva.");
-
 
         wait.until(ExpectedConditions.urlContains("student.html"));
         String currentUrl = driver.getCurrentUrl();
         System.out.println("Jelenlegi URL a bejelentkezés után: " + currentUrl);
         assertTrue(currentUrl.contains("student.html"), "Diák bejelentkezés sikertelen!");
 
-        WebElement coursesButton = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//button[contains(text(),'Elérhető kurzusok')]")));
-        coursesButton.click();
-        System.out.println("Elérhető kurzusok gomb megnyomva.");
-
+        WebElement examsButton = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//button[contains(text(),'Elérhető vizsgák')]")));
+        examsButton.click();
+        System.out.println("Elérhető vizsgák gomb megnyomva.");
 
         try {
-            WebElement firstCourseButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//button[contains(text(),'Kurzus felvétele')]")));
-            firstCourseButton.click();
-            System.out.println("Első kurzus felvéve.");
+            WebElement firstExamButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//button[contains(text(),'Vizsga felvétele')]")));
+            firstExamButton.click();
+            System.out.println("Első vizsga felvéve.");
         } catch (TimeoutException e) {
-            System.out.println("Nincsenek elérhető kurzusok vagy az elem nem található.");
+            System.out.println("Nincsenek elérhető vizsgák.");
         }
     }
 
